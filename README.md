@@ -1,6 +1,8 @@
 # PhpImgOptymizer
 PHP script that optymize img size and quality. Works with jpg as well as .gif and .png file formats. Basicaly save space on your server and makes images load quicker. Works on most of share hostings. Posibly can be turned in to WP plugin for free img optymization.
 
+IMPORTANT! - A "GP" php extension need to be installed / enabled to run this script
+
 ```php
 <?php
 // DEMO - USE EXAMPLE
