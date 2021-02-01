@@ -258,17 +258,20 @@ $path = '.'; // relative path from PhpImgOptymizer.php file to img folder (. mea
 $extRegEx = '%.*(png|jpg|jpeg|gif|webp)$%'; //regular expresion - selects file extensions - "%" is expresion delimiter
 $recursive = true;
 $options = [
+    'mode' => 'keep', // NOT USED - TODO *** keep original img or raplce 'mode' => [keep, replace] string
     'resizeImgProcent' => 100, // set new size of all optymized img files. 100 = no resizes
-    'compresionLvlForPng' => 9, // compresion strength from 0 to 9 where 9 is the strongest and 6 is the default
-    'qualityForJpgAndWebp' => 30, // image quality from 0 to 100 where 100 is the heighest quality and 75 is the default
-    'maxWidth' => 1200, // images larger then 1200 will be resize to maxWidth value
-    // *** need to add height constraints as well
-    'widthRange' => [600, 99999], // apply to images sized between 0px to 9000px width
+    'compresionLvlForPng' => 6, // compresion strength from 0 to 9 where 9 is the strongest and 6 is the default
+    'qualityForJpgAndWebp' => 50, // image quality from 0 to 100 where 100 is the heighest quality and 75 is the default
+    'imgOrintation' => '', // NOT USED - TODO *** 'applyToImgOrintation' => [landscape, portrait, square] @array | string'
+    'widthRange' => [200, 99999], // apply to images sized between 0px to 9000px width
     'optymizeFileLargerThen' => 20, // optymise files larger then number of Kb - example: 50 
     'fileNamePattern' => '%.*%', // compress only files which name mach this regular expresion 
-    'outputFormat' => 'webp', // COnverts to other file type - NULL - do nothing | or convert to: jpg | png | gif | webp
+    'outputFormat' => 'jpg', // COnverts to other file type - NULL - do nothing | or convert to: jpg | png | gif | webp
     'outputSizes' => [250, 600, 900], // not yet implemented - it shoud output additional file with size maching it name like web600-filename.ext and so on....
-    'keepOriginal' => "web-", // FALSE || NULL OR prepend new file with custom string exemaple" web-
+    'keepOriginal' => "web-", // FALSE || NULL OR prepend new file with custom string exemaple" web- //   TODO *** or use array for multiple output
+
+    'maxWidth' => 800, // images larger then 1200 will be resize to maxWidth value
+    'maxHeight' => 1200000, // NOT USED - TODO *** need to add height constraints as well // TODO make an array of sizes so it output files in few formats
 ];
 
 new ImageOptymizer($path, $extRegEx, $recursive, $options);
