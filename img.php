@@ -4,6 +4,34 @@
 
 ini_set('memory_limit', '-1');
 
+class File{
+
+    public $dir = NULL;
+
+    public function __construct(public $name, public $size, public $src, public $temp)
+    {
+        
+    }
+
+    public function setDir()
+    {
+        
+    }
+}
+
+class FileCollection{
+    public $fileCollection = [];
+    public function addFile(File $file)
+    {
+        if(!$file->dir){
+            $fileCollection[$file->dir][] = $file;
+        }else{
+            $fileCollection[] = $file;
+        }
+        
+    }
+}
+
 Class ImageOptymizer {
 
     public $counterAllFiles = 0;
@@ -57,13 +85,13 @@ Class ImageOptymizer {
 
     /**
      * 
-     * @param integer $newWidth - width in %
+     * @param integer $resizeProcent - width in %
      * @param string $targetFile - path to a file
      * @param string $originalFile - path to a file
      * @param mix array $options - $options['compresionLvlForPng'] image compression strength value from 0 - 9 for PNG | $options['qualityForJpgAndWebp'] and qualityForJpgAndWebp from 0 to 100 for JPG
      * @throws Exception - if file type not supported
      */
-    public function resizeImg($newWidth, $targetFile, $originalFile, $options) {
+    public function resizeImg($resizeProcent, $targetFile, $originalFile, $options) {
         $image_create_func = NULL;
         $info = getimagesize($originalFile);
         //print_r($info);
@@ -117,7 +145,7 @@ Class ImageOptymizer {
             }
         }
 
-        // If keepOryginal === true then add char to name so the file will not get overriden
+        // If keepOryginal === true then add char to name so the file will not get overriden - if prepend string is was set in options
         if($this->options['keepOriginal']){
             $exploded = explode('/', $targetFile);
             var_dump('$exploded', $exploded);
@@ -133,11 +161,55 @@ Class ImageOptymizer {
 
         $img = $image_create_func($originalFile);
         list($width, $height) = getimagesize($originalFile);
-        if($width < $options['widthRange'][0]|| $width > $options['widthRange'][1]) return;
-        $newWidth = $width / 100 * $newWidth;
-        if($newWidth > $options['maxWidth']) $newWidth = $options['maxWidth'];
-        // echo $width . " => " . $newWidth.PHP_EOL;
-        $newHeight = ($height / $width) * $newWidth;
+
+        $imgOrientaton = null;
+        if($width == $height){
+            $imgOrientaton = 'square';
+        }else if($width > $height){
+            $imgOrientaton = 'landscape';
+        }else if($width < $height){
+            $imgOrientaton = 'portrait';
+        }else{
+            throw new Exception("not assigned to aby of those: [landscape, portrait, square] ");
+        }
+
+        // return if this image orientatin is set to false
+        if($this->options['imgOrientaton'][$imgOrientaton] != true) return;
+        
+        if($imgOrientaton == 'landscape' || $imgOrientaton == 'square'){
+            // return if this image not in size range
+            if($width < $options['widthRange'][0] || $width > $options['widthRange'][1]) return;
+
+            // if landscape or square set width and calculate height
+            $newWidth = $width / 100 * $resizeProcent;
+            if($newWidth > $options['maxWidthForLandscape']) $newWidth = $options['maxWidthForLandscape'];
+            $newHeight = ($height / $width) * $newWidth;
+
+            echo "IMG orientation: --- $imgOrientaton".PHP_EOL;
+            echo "1 width ". $width . " => newWidth " . $newWidth.PHP_EOL;
+            echo "2 height ". $height . " => newHeight " . $newHeight.PHP_EOL;
+
+        }else if($imgOrientaton == 'portrait'){
+            // return if this image not in size range
+            if($height < $options['heightRange'][0] || $height > $options['heightRange'][1]) return;
+
+            // if portait set height and calculate width
+            $newHeight = $height / 100 * $resizeProcent;
+            if($newHeight > $this->options['maxHeightForPortreit']) $newHeight = $this->options['maxHeightForPortreit'];
+            $newWidth = ($width / $height) * $newHeight;
+
+            echo "IMG orientation: | $imgOrientaton".PHP_EOL;
+            echo "1 height ". $height . " => newHeight " . $newHeight.PHP_EOL;
+            echo "2 width ". $width . " => newWidth " . $newWidth.PHP_EOL;
+
+        }else{
+            throw new Exception("Not able to set newWidth or newHeight...");
+        }
+
+
+        
+
+
         $tmp = imagecreatetruecolor($newWidth, $newHeight);
         
         // prevent PNG and GIFF from adding black backbround
@@ -258,20 +330,22 @@ $path = '.'; // relative path from PhpImgOptymizer.php file to img folder (. mea
 $extRegEx = '%.*(png|jpg|jpeg|gif|webp)$%'; //regular expresion - selects file extensions - "%" is expresion delimiter
 $recursive = true;
 $options = [
-    'mode' => 'keep', // NOT USED - TODO *** keep original img or raplce 'mode' => [keep, replace] string
+    // 'mode' => 'keep', // NOT USED - TODO *** keep original img or raplce 'mode' => [keep, replace] string
+    // 'imageresolution' => [96, 96] // NOT USED - TODO *** sets img resolution dpi 'imageresolution' => [96, 96] @array of int
     'resizeImgProcent' => 100, // set new size of all optymized img files. 100 = no resizes
     'compresionLvlForPng' => 6, // compresion strength from 0 to 9 where 9 is the strongest and 6 is the default
-    'qualityForJpgAndWebp' => 50, // image quality from 0 to 100 where 100 is the heighest quality and 75 is the default
-    'imgOrintation' => '', // NOT USED - TODO *** 'applyToImgOrintation' => [landscape, portrait, square] @array | string'
-    'widthRange' => [200, 99999], // apply to images sized between 0px to 9000px width
-    'optymizeFileLargerThen' => 20, // optymise files larger then number of Kb - example: 50 
-    'fileNamePattern' => '%.*%', // compress only files which name mach this regular expresion 
-    'outputFormat' => 'jpg', // COnverts to other file type - NULL - do nothing | or convert to: jpg | png | gif | webp
-    'outputSizes' => [250, 600, 900], // not yet implemented - it shoud output additional file with size maching it name like web600-filename.ext and so on....
-    'keepOriginal' => "web-", // FALSE || NULL OR prepend new file with custom string exemaple" web- //   TODO *** or use array for multiple output
+    'qualityForJpgAndWebp' => 60, // image quality from 0 to 100 where 100 is the heighest quality and 75 is the default
+    'imgOrientaton' => ['landscape'=> true, 'portrait' => true, 'square' => true], // NOT USED - TODO *** 'applyToImgOrintation' => ['landscape'=> false, 'portrait' => false, 'square' => false]
+    'widthRange' => [0, 99999], // apply to images sized between 0px to 99999 px width
+    'heightRange' => [0, 99999], // apply to images sized between 0px to 99999 px height
+    'optymizeFileLargerThen' => 10, // optymise files larger then number of Kb - example: 50 kb
+    'fileNamePattern' => '%.*%', // compress only files which name mach this regular expresion use "%.*%" as default | %^(?!web-).*% will exlude files starting with "web-"
+    'outputFormat' => 'jpg', // Converts to other file type - NULL - do nothing | or convert to: jpg | png | gif | webp
+    // 'outputSizes' => [250, 600, 900], // NOT USED - TODO *** - it shoud output additional file with size maching it name like web600-filename.ext and so on....
+    'keepOriginal' => false, // false || null OR prepend new file with custom string exemaple" web- //   TODO *** or use array for multiple output
 
-    'maxWidth' => 800, // images larger then 1200 will be resize to maxWidth value
-    'maxHeight' => 1200000, // NOT USED - TODO *** need to add height constraints as well // TODO make an array of sizes so it output files in few formats
+    'maxWidthForLandscape' => 1200, // images larger then this value will be resize to maxWidthForLandscape value // TODO make an array of sizes so it output files in few formats
+    'maxHeightForPortreit' => 1200, // images larger then this value will be resize to maxHeightForPortreit value // TODO make an array of sizes so it output files in few formats
 ];
 
 new ImageOptymizer($path, $extRegEx, $recursive, $options);
